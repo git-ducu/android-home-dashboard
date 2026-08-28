@@ -2,7 +2,8 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = (Resolve-Path (Join-Path $scriptDir '..\..')).Path
 $runtime = Join-Path $root 'runtime'
 $staging = Join-Path $runtime '.staging'
 $pythonDir = Join-Path $runtime 'python'
@@ -123,7 +124,7 @@ try {
     Assert-ExitCode $LASTEXITCODE 'Local ADB verification'
     if ((Get-Item $presentMon).Length -lt 500KB) { throw 'PresentMon download is incomplete.' }
 
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'dashboard_task.ps1') install
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'scripts\runtime\dashboard_task.ps1') install
     Assert-ExitCode $LASTEXITCODE 'Scheduled task registration'
 
     Get-ChildItem -LiteralPath $runtime -Directory -Filter '__pycache__' -Recurse -ErrorAction SilentlyContinue |

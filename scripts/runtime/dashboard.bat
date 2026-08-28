@@ -1,6 +1,7 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+for %%I in ("%~dp0..\..") do set "PROJECT_ROOT=%%~fI\"
+cd /d "%PROJECT_ROOT%"
 
 rem ---------------------------------------------------------------------------
 rem  Android Home Dashboard - single control script
@@ -27,7 +28,7 @@ if /I not "%ACTION%"=="start" if /I not "%ACTION%"=="stop" if /I not "%ACTION%"=
   exit /b 1
 )
 
-if not exist "%~dp0runtime\platform-tools\adb.exe" (
+if not exist "%PROJECT_ROOT%runtime\platform-tools\adb.exe" (
   echo [ERROR] Local runtime is missing. Run install.bat first.
   pause
   exit /b 1

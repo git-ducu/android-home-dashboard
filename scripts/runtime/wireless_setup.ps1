@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $adb = Join-Path $root 'runtime\platform-tools\adb.exe'
 $configFile = Join-Path $root 'phone_config.json'
 $env:ADB_VENDOR_KEYS = Join-Path $root 'runtime\adb-keys\adbkey'

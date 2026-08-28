@@ -24,8 +24,8 @@ A local PWA that turns an Android phone into a home dashboard for a Windows PC.
 ![Today dashboard](docs/screenshots/today.png)
 
 <p align="center">
-  <img src="docs/screenshots/clipboard.png" alt="Clipboard dashboard" width="48%">
-  <img src="docs/screenshots/automation.png" alt="Automation dashboard" width="48%">
+  <img src="docs/screenshots/settings.png" alt="Settings dashboard" width="48%">
+  <img src="docs/screenshots/now-playing.png" alt="Now playing dashboard" width="48%">
 </p>
 
 ---
@@ -52,7 +52,7 @@ cd android-home-dashboard
 2. 설치 스크립트를 실행합니다. / Run the installer.
 
 ```powershell
-.\install.bat
+.\scripts\install\install.bat
 ```
 
 3. Android 기기를 USB로 연결하고 디버깅을 허용합니다. / Connect the Android device by USB and allow debugging.
@@ -60,7 +60,7 @@ cd android-home-dashboard
 4. 대시보드를 시작합니다. / Start the dashboard.
 
 ```powershell
-.\start_dashboard.bat
+.\scripts\runtime\dashboard.bat start
 ```
 
 5. 휴대폰 Chrome에서 아래 주소를 엽니다. / Open the following address in Chrome on the phone.
@@ -86,19 +86,19 @@ adb tcpip 5555
 adb connect PHONE_IP:5555
 ```
 
-연결 후 `start_dashboard.bat`을 다시 실행합니다.
+연결 후 `scripts\runtime\dashboard.bat start`를 다시 실행합니다.
 
-Run `start_dashboard.bat` again after the connection is established.
+Run `scripts\runtime\dashboard.bat start` again after the connection is established.
 
 ---
 
 ## 명령 / Commands
 
 ```powershell
-.\start_dashboard.bat   # 시작 / Start
-.\stop_dashboard.bat    # 중지 / Stop
-.\status_dashboard.bat  # 상태 확인 / Check status
-.\uninstall.bat         # 제거 / Uninstall
+.\scripts\runtime\dashboard.bat start      # 시작 / Start
+.\scripts\runtime\dashboard.bat stop       # 중지 / Stop
+.\scripts\runtime\dashboard.bat status     # 상태 확인 / Check status
+.\scripts\runtime\dashboard.bat uninstall  # 제거 / Uninstall
 ```
 
 ---
@@ -118,6 +118,22 @@ Add buttons on the Automation screen and assign actions such as:
 자동화 설정은 로컬 파일에 저장되며 Git에 포함되지 않습니다.
 
 Automation settings are stored locally and are not committed to Git.
+
+---
+
+## 프로젝트 구조 / Project Structure
+
+```text
+src/
+  bridge/        Python bridge and Windows integration
+  web/           PWA interface
+    assets/      Icons and web assets
+scripts/
+  install/       Installation and autostart scripts
+  runtime/       Start, stop, diagnostics, and ADB tools
+docs/            Screenshots and documentation
+tests/           Unit and device tests
+```
 
 ---
 

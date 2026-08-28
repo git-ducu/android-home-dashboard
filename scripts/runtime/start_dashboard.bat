@@ -1,7 +1,8 @@
 @echo off
 setlocal
-cd /d "%~dp0"
-if not exist "%~dp0runtime\platform-tools\adb.exe" (
+for %%I in ("%~dp0..\..") do set "PROJECT_ROOT=%%~fI\"
+cd /d "%PROJECT_ROOT%"
+if not exist "%PROJECT_ROOT%runtime\platform-tools\adb.exe" (
   echo [ERROR] Local runtime is missing. Run install.bat first.
   pause
   exit /b 1

@@ -1,12 +1,13 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+for %%I in ("%~dp0..\..") do set "PROJECT_ROOT=%%~fI\"
+cd /d "%PROJECT_ROOT%"
 title A51 Dashboard v2.0 Diagnose
-set "PYTHON=%~dp0runtime\python\python.exe"
-set "ADB=%~dp0runtime\platform-tools\adb.exe"
-set "PRESENTMON=%~dp0runtime\presentmon\PresentMon.exe"
-set "ADB_VENDOR_KEYS=%~dp0runtime\adb-keys\adbkey"
-set "ANDROID_USER_HOME=%~dp0runtime\android-home"
+set "PYTHON=%PROJECT_ROOT%runtime\python\python.exe"
+set "ADB=%PROJECT_ROOT%runtime\platform-tools\adb.exe"
+set "PRESENTMON=%PROJECT_ROOT%runtime\presentmon\PresentMon.exe"
+set "ADB_VENDOR_KEYS=%PROJECT_ROOT%runtime\adb-keys\adbkey"
+set "ANDROID_USER_HOME=%PROJECT_ROOT%runtime\android-home"
 
 echo ===== Python =====
 "%PYTHON%" --version

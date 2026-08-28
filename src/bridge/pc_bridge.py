@@ -37,8 +37,9 @@ except Exception as e:
     WINRT_MEDIA_ERROR = str(e)
 
 VERSION = "2.4"
-ROOT = Path(__file__).resolve().parent
-RUNTIME_DIR = ROOT / "runtime"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+WEB_DIR = PROJECT_ROOT / "src" / "web"
+RUNTIME_DIR = PROJECT_ROOT / "runtime"
 ADB_EXE = RUNTIME_DIR / "platform-tools" / "adb.exe"
 PRESENTMON_EXE = RUNTIME_DIR / "presentmon" / "PresentMon.exe"
 PRESENTMON_SESSION_NAME = "AndroidHomeDashboard"
@@ -47,15 +48,15 @@ ADB_KEY = RUNTIME_DIR / "adb-keys" / "adbkey"
 ANDROID_HOME = RUNTIME_DIR / "android-home"
 PWA_PACKAGE_FILE = RUNTIME_DIR / "pwa-package.txt"
 LAST_WIRELESS_ENDPOINT_FILE = RUNTIME_DIR / "last-wireless-endpoint.txt"
-PHONE_CONFIG_FILE = ROOT / "phone_config.json"
-AUTOMATION_CONFIG_FILE = ROOT / "dashboard_automation.json"
+PHONE_CONFIG_FILE = PROJECT_ROOT / "phone_config.json"
+AUTOMATION_CONFIG_FILE = PROJECT_ROOT / "dashboard_automation.json"
 os.environ["ADB_VENDOR_KEYS"] = str(ADB_KEY)
 os.environ["ANDROID_USER_HOME"] = str(ANDROID_HOME)
-LOG_DIR = ROOT / "logs"
+LOG_DIR = PROJECT_ROOT / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 LOG_FILE = LOG_DIR / "bridge.log"
 LOG_MAX_BYTES = 2_000_000
-PID_FILE = ROOT / "bridge.pid"
+PID_FILE = PROJECT_ROOT / "bridge.pid"
 HOST = "127.0.0.1"
 PORT = 8765
 API_TOKEN = secrets.token_urlsafe(32)
@@ -3003,7 +3004,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path in ("/", "/index.html") or self.path.startswith("/?"):
-            self.send_body(200, (ROOT / "dashboard.html").read_text(encoding="utf-8"), "text/html; charset=utf-8")
+            self.send_body(200, (WEB_DIR / "dashboard.html").read_text(encoding="utf-8"), "text/html; charset=utf-8")
             return
         if self.path.startswith("/api/health"):
             self.send_body(200, {"ok": True, "version": VERSION, "pid": os.getpid()})
@@ -3014,13 +3015,13 @@ class Handler(BaseHTTPRequestHandler):
         static_files = {
             "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json; charset=utf-8"),
             "/sw.js": ("sw.js", "application/javascript; charset=utf-8"),
-            "/icon.svg": ("icon.svg", "image/svg+xml; charset=utf-8"),
-            "/icon-192.png": ("icon-192.png", "image/png"),
-            "/icon-512.png": ("icon-512.png", "image/png"),
+            "/icon.svg": ("assets/icon.svg", "image/svg+xml; charset=utf-8"),
+            "/icon-192.png": ("assets/icon-192.png", "image/png"),
+            "/icon-512.png": ("assets/icon-512.png", "image/png"),
         }
         if self.path in static_files:
             name, ctype = static_files[self.path]
-            self.send_body(200, (ROOT / name).read_bytes(), ctype)
+            self.send_body(200, (WEB_DIR / name).read_bytes(), ctype)
             return
         if self.path.startswith("/api/status"):
             try:

@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableExtensions
-cd /d "%~dp0"
+for %%I in ("%~dp0..\..") do set "PROJECT_ROOT=%%~fI\"
+cd /d "%PROJECT_ROOT%"
 title Android Home Dashboard Installer
 set "QUIET="
 if /i "%~1"=="/quiet" set "QUIET=1"
@@ -11,18 +12,18 @@ rem only this file to a cache directory. Validate the complete payload before
 rem requesting elevation or changing the machine.
 set "PAYLOAD_MISSING="
 for %%F in (
-  "install_runtime.ps1"
-  "dashboard_task.ps1"
-  "phone_shutdown.ps1"
-  "pc_bridge.py"
-  "dashboard.html"
-  "manifest.webmanifest"
-  "sw.js"
-  "icon.svg"
-  "icon-192.png"
-  "icon-512.png"
+  "scripts\install\install_runtime.ps1"
+  "scripts\runtime\dashboard_task.ps1"
+  "scripts\runtime\phone_shutdown.ps1"
+  "src\bridge\pc_bridge.py"
+  "src\web\dashboard.html"
+  "src\web\manifest.webmanifest"
+  "src\web\sw.js"
+  "src\web\assets\icon.svg"
+  "src\web\assets\icon-192.png"
+  "src\web\assets\icon-512.png"
 ) do (
-  if not exist "%~dp0%%~F" (
+  if not exist "%PROJECT_ROOT%%%~F" (
     echo [ERROR] Required file is missing: %%~F
     set "PAYLOAD_MISSING=1"
   )
@@ -31,7 +32,7 @@ if defined PAYLOAD_MISSING goto :incomplete_package
 
 rem Scheduled tasks keep absolute paths, so an installation rooted in a
 rem browser cache or TEMP would break as soon as Windows cleans that folder.
-set "DASHBOARD_INSTALL_DIR=%~dp0"
+set "DASHBOARD_INSTALL_DIR=%PROJECT_ROOT%"
 "%POWERSHELL%" -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; try { $root=[IO.Path]::GetFullPath($env:DASHBOARD_INSTALL_DIR); $roots=@($env:TEMP,$env:TMP); if($env:LOCALAPPDATA){$roots+=(Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\INetCache')}; foreach($item in $roots){if([string]::IsNullOrWhiteSpace($item)){continue}; $prefix=[IO.Path]::GetFullPath($item).TrimEnd('\')+'\'; if($root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){exit 10}}; exit 0 } catch { exit 11 }"
 set "LOCATION_EXIT=%ERRORLEVEL%"
 if "%LOCATION_EXIT%"=="10" goto :temporary_location

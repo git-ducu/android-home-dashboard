@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $adb = Join-Path $root 'runtime\platform-tools\adb.exe'
 $env:ADB_VENDOR_KEYS = Join-Path $root 'runtime\adb-keys\adbkey'
 $env:ANDROID_USER_HOME = Join-Path $root 'runtime\android-home'
