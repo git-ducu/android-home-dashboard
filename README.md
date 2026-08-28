@@ -1,89 +1,170 @@
 # android-home-dashboard
 
-Windows PC 상태와 미디어, 클립보드, 날씨를 남는 Android 휴대폰에 표시하는 로컬 PWA 대시보드입니다. PC의 Python 브리지는 `127.0.0.1:8765`에만 바인딩되고, Android는 ADB reverse를 통해 같은 주소에 접속합니다.
+안드로이드 폰을 Windows PC용 홈 대시보드로 사용하는 로컬 PWA입니다.
 
-![Today 화면](docs/screenshots/today.png)
+A local PWA that turns an Android phone into a home dashboard for a Windows PC.
+
+`Windows PC → Python bridge → ADB reverse → Android PWA`
+
+---
+
+## 기능 / Features
+
+- PC 상태, 시간, 날씨, 미디어 정보를 한 화면에 표시 / Shows PC status, time, weather, and media information on one screen
+- 클립보드 기록 확인 및 다시 복사 / Browse clipboard history and copy previous entries again
+- PC 잠금, 절전, 종료 등 빠른 작업 / Run quick actions such as lock, sleep, and shutdown
+- 버튼과 매크로를 직접 구성하는 자동화 데크 / Customizable automation deck with buttons and macros
+- ADB USB 및 무선 연결 지원 / Supports USB and wireless ADB connections
+- 외부 계정이나 클라우드 없이 로컬에서 동작 / Runs locally without an external account or cloud service
+
+---
+
+## 스크린샷 / Screenshots
+
+![Today dashboard](docs/screenshots/today.png)
 
 <p align="center">
-  <img src="docs/screenshots/now-playing.png" alt="Now Playing 화면" width="49%">
-  <img src="docs/screenshots/settings.png" alt="자동화 설정 화면" width="49%">
+  <img src="docs/screenshots/clipboard.png" alt="Clipboard dashboard" width="48%">
+  <img src="docs/screenshots/automation.png" alt="Automation dashboard" width="48%">
 </p>
 
-## 주요 기능
+---
 
-- CPU, GPU, VRAM, RAM, 네트워크와 현재 활성 앱 표시
-- Windows 클립보드 기록을 Android의 IndexedDB에 최대 10개 보관하고 다시 복원
-- Windows 미디어 세션의 앨범 아트, 재생 상태와 이전/재생/다음 제어
-- PresentMon 기반 FPS, 프레임 타임, 최소/최대 및 1% low 표시
-- Android GPS 기반 현재 날씨, 6시간 예보와 다음 날 예보
-- `GAME > VIDEO > IDLE > WORK > DEFAULT` 우선순위의 화면 자동 전환
-- Windows 잠금 시 데이터 수집과 변경 요청을 중단하고, 해제 시 자동 복귀
-- USB 또는 무선 ADB 연결과 PWA 자동 실행
+## 요구사항 / Requirements
 
-## 요구 사항
+- Windows 10 또는 Windows 11 / Windows 10 or Windows 11
+- Python 3.10 이상 / Python 3.10 or later
+- Android 기기와 Chrome / Android device with Chrome
+- Android Platform Tools (`adb`) / Android Platform Tools (`adb`)
+- 개발자 옵션과 USB 디버깅 활성화 / Developer options and USB debugging enabled
 
-- Windows 10 또는 11
-- Android 휴대폰과 Google Chrome
-- 최초 연결용 USB 케이블과 활성화된 USB 디버깅
-- 설치 중 Python, Android Platform Tools, PresentMon을 받을 인터넷 연결
-- GPU 온도·전력·VRAM 표시는 NVIDIA GPU 권장
+---
 
-## 설치
+## 빠른 시작 / Quick Start
 
-1. 저장소를 영구적으로 사용할 폴더에 clone하거나 압축을 완전히 풉니다.
-2. Android 개발자 옵션에서 USB 디버깅을 켜고 PC 연결을 허용합니다.
-3. `install.bat`을 실행하고 관리자 권한 요청을 승인합니다.
-4. `start_dashboard.bat`을 실행합니다.
-5. 휴대폰 Chrome에 대시보드가 열리면 메뉴에서 앱 설치 또는 홈 화면 추가를 선택합니다.
-
-설치기는 프로젝트 안의 `runtime/`에 전용 Python, ADB, PresentMon과 Python 패키지를 준비하고 Windows 로그인/종료 예약 작업을 등록합니다. 시스템 Python을 별도로 설치할 필요는 없습니다.
-
-### 무선 ADB
-
-휴대폰과 PC를 같은 개인 Wi-Fi에 연결한 뒤 `wireless_setup.bat`을 실행합니다. Android 11 이상에서는 화면 안내에 따라 무선 디버깅 페어링 주소, 코드와 연결 주소를 입력합니다. 연결이 끊기면 USB를 자동 대체 경로로 사용합니다.
-
-## 제어 명령
-
-```bat
-dashboard.bat start
-dashboard.bat stop
-dashboard.bat restart
-dashboard.bat status
-dashboard.bat install
-dashboard.bat uninstall
-```
-
-간단한 시작/종료에는 `start_dashboard.bat`과 `stop_dashboard.bat`을 사용할 수 있습니다.
-
-## 화면 자동화
-
-왼쪽 위 설정 버튼에서 자동화 활성화, 유휴 시간, 작업 앱, 상태별 페이지와 회전 순서를 바꿀 수 있습니다. 페이지를 직접 누르거나 스와이프하면 다음 상태 변경 전까지 MANUAL 모드가 유지됩니다. `RESUME AUTO`를 누르면 즉시 자동 모드로 돌아갑니다.
-
-## 로컬 데이터와 보안
-
-- 브리지는 loopback 주소에만 바인딩되며 Android 접근은 ADB reverse를 사용합니다.
-- 모든 변경 API는 같은 출처와 실행 시 발급되는 요청 토큰을 확인합니다.
-- Windows가 잠겨 있으면 종료를 포함한 변경 API가 거부됩니다.
-- `phone_config.json`, ADB 키, 로그, PID, 로컬 자동화 설정과 다운로드된 runtime은 Git에서 제외됩니다.
-- 클립보드 기록은 Android Chrome/PWA의 IndexedDB와 실행 중인 PC 메모리에만 저장됩니다.
-- 날씨는 휴대폰에서 Open-Meteo에 직접 요청하고, GPS 좌표의 지역명 확인에 OpenStreetMap Nominatim을 사용합니다.
-
-개인키가 포함된 기존 작업 폴더 전체를 복사하거나 공개 저장소에 올리지 마세요. 이 저장소의 `.gitignore`가 적용된 파일만 Git으로 배포해야 합니다.
-
-## 검증
+1. 저장소를 클론합니다. / Clone the repository.
 
 ```powershell
-runtime\python\python.exe -m unittest discover -s tests -p "test_*.py" -v
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\browser_smoke.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\android_weather_e2e.ps1
+git clone https://github.com/git-ducu/android-home-dashboard.git
+cd android-home-dashboard
 ```
 
-마지막 명령은 USB 디버깅이 허용된 실제 Android 기기와 열린 Dashboard PWA가 필요합니다.
+2. 설치 스크립트를 실행합니다. / Run the installer.
 
-## 제거
+```powershell
+.\install.bat
+```
 
-`dashboard.bat uninstall`을 관리자 권한으로 실행한 뒤 폴더를 삭제합니다. 휴대폰에 설치한 PWA는 Android 설정 또는 Chrome에서 별도로 제거합니다.
+3. Android 기기를 USB로 연결하고 디버깅을 허용합니다. / Connect the Android device by USB and allow debugging.
 
-## 라이선스
+4. 대시보드를 시작합니다. / Start the dashboard.
 
-[MIT License](LICENSE)
+```powershell
+.\start_dashboard.bat
+```
+
+5. 휴대폰 Chrome에서 아래 주소를 엽니다. / Open the following address in Chrome on the phone.
+
+```text
+http://127.0.0.1:8765
+```
+
+홈 화면에 추가하면 전체 화면 앱처럼 사용할 수 있습니다.
+
+Add it to the home screen to use it like a full-screen app.
+
+---
+
+## 무선 ADB / Wireless ADB
+
+USB로 처음 연결한 뒤 무선 모드를 활성화합니다.
+
+Connect by USB once, then enable wireless mode.
+
+```powershell
+adb tcpip 5555
+adb connect PHONE_IP:5555
+```
+
+연결 후 `start_dashboard.bat`을 다시 실행합니다.
+
+Run `start_dashboard.bat` again after the connection is established.
+
+---
+
+## 명령 / Commands
+
+```powershell
+.\start_dashboard.bat   # 시작 / Start
+.\stop_dashboard.bat    # 중지 / Stop
+.\status_dashboard.bat  # 상태 확인 / Check status
+.\uninstall.bat         # 제거 / Uninstall
+```
+
+---
+
+## 자동화 / Automation
+
+대시보드의 Automation 화면에서 버튼을 추가하고 아래 작업을 지정할 수 있습니다.
+
+Add buttons on the Automation screen and assign actions such as:
+
+- 앱 또는 파일 실행 / Launch an app or file
+- 웹사이트 열기 / Open a website
+- 키 입력 전송 / Send keystrokes
+- 미디어 제어 / Control media playback
+- 여러 작업을 순서대로 실행 / Run multiple actions in sequence
+
+자동화 설정은 로컬 파일에 저장되며 Git에 포함되지 않습니다.
+
+Automation settings are stored locally and are not committed to Git.
+
+---
+
+## 구조 / Architecture
+
+```text
+Android Chrome (PWA)
+        │
+        │ ADB reverse: 127.0.0.1:8765
+        ▼
+Python local bridge
+        │
+        ├─ Windows status and actions
+        ├─ Media session
+        ├─ Clipboard history
+        └─ Local automation
+```
+
+---
+
+## 개인정보 및 보안 / Privacy and Security
+
+- 서버는 기본적으로 로컬 주소에서만 수신합니다. / The server listens on a local address by default.
+- 개인 설정, 로그, 클립보드 데이터는 저장소에서 제외됩니다. / Personal settings, logs, and clipboard data are excluded from the repository.
+- 외부 네트워크에 직접 공개하지 마세요. / Do not expose the bridge directly to an external network.
+- 종료 및 시스템 작업은 확인 절차를 거칩니다. / Shutdown and system actions require confirmation.
+
+---
+
+## 테스트 / Tests
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+실제 기기 테스트에는 Android 기기와 동작 중인 ADB 연결이 필요합니다.
+
+Real-device tests require an Android device with an active ADB connection.
+
+---
+
+## 라이선스 / License
+
+이 프로젝트는 MIT 라이선스로 배포됩니다.
+
+This project is released under the MIT License.
+
+자세한 내용은 [LICENSE](LICENSE)를 확인하세요.
+
+See [LICENSE](LICENSE) for details.
