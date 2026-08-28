@@ -1,0 +1,29 @@
+# Local runtime and generated state
+runtime/
+logs/
+bridge.pid
+dashboard_automation.json
+phone_config.json
+__pycache__/
+*.py[cod]
+
+# Test and tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Android/Gradle outputs if the companion is revisited
+.gradle/
+**/build/
+local.properties
+
+# Local packages and archives
+*.zip
+*.apk
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
