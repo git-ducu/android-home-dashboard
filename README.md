@@ -1,4 +1,4 @@
-# android-home-dashboard
+# Android-home-dashboard
 
 안드로이드 폰을 Windows PC용 홈 대시보드로 사용하는 로컬 PWA입니다.
 
