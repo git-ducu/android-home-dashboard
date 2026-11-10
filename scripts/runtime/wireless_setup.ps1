@@ -52,6 +52,7 @@ function Read-Config {
         mode = 'auto'
         prefer_wireless = $true
         usb_fallback = $true
+        auto_restore_wireless_debugging = $true
         preferred_hardware_serial = ''
         preferred_model = ''
         legacy_endpoints = @()
@@ -171,6 +172,7 @@ $config = [ordered]@{
     mode = 'auto'
     prefer_wireless = $true
     usb_fallback = $true
+    auto_restore_wireless_debugging = $true
     preferred_hardware_serial = $hardwareSerial
     preferred_model = $model
     legacy_endpoints = $legacyEndpoints

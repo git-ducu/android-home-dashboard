@@ -77,18 +77,29 @@ Add it to the home screen to use it like a full-screen app.
 
 ## 무선 ADB / Wireless ADB
 
-USB로 처음 연결한 뒤 무선 모드를 활성화합니다.
+USB로 휴대폰을 연결한 뒤 아래 도구로 무선 디버깅을 페어링합니다. Android 11 이상은 휴대폰에 표시되는 페어링 코드가 필요합니다.
 
-Connect by USB once, then enable wireless mode.
+Connect the phone by USB, then use the setup tool to pair wireless debugging. Android 11 or later requires the pairing code shown on the phone.
 
 ```powershell
-adb tcpip 5555
-adb connect PHONE_IP:5555
+.\scripts\runtime\wireless_setup.bat
 ```
 
-연결 후 `scripts\runtime\dashboard.bat start`를 다시 실행합니다.
+대시보드가 실행 중이면 설정을 자동으로 반영하고 무선 연결을 우선 사용합니다.
 
-Run `scripts\runtime\dashboard.bat start` again after the connection is established.
+The running dashboard picks up the configuration automatically and prefers wireless.
+
+재부팅 뒤 Android 11 이상 휴대폰의 무선 디버깅이 꺼졌다면, PC와 같은 Wi-Fi에 연결한 상태로 USB를 한 번 꽂으세요. 지정된 휴대폰의 무선 디버깅을 켜고, 새 IP·포트를 검색해 기존 페어링으로 재연결한 뒤 PWA를 엽니다. USB 전용 모드에서는 이 복구를 실행하지 않습니다.
+
+If wireless debugging is off after a phone reboot, connect the Android 11+ phone to the same Wi-Fi as the PC and plug it into USB once. The bridge enables wireless debugging on the selected phone, discovers its current IP and port, reconnects using the existing pairing, and opens the PWA. USB-only mode disables this recovery.
+
+USB와 무선 연결이 모두 없으면 PC에서 휴대폰 설정을 바꿀 수 없습니다. 최초 페어링, 만료된 페어링, 휴대폰의 권한 확인은 수동 조작이 필요할 수 있습니다. Android 10 이하는 위 설정 도구로 무선 모드를 다시 활성화해야 합니다.
+
+With neither USB nor wireless access, the PC cannot change phone settings. Initial or expired pairing and phone permission prompts may require user action. Android 10 or earlier requires the setup tool to reactivate wireless mode.
+
+로컬 `phone_config.json`에 `"auto_restore_wireless_debugging": false`를 넣으면 USB를 통한 자동 켜기를 중지합니다. `/api/status`의 `phone.wireless_recovery`에서 복구 상태와 오류를 확인할 수 있습니다.
+
+Set `"auto_restore_wireless_debugging": false` in local `phone_config.json` to disable automatic enabling over USB. Recovery state and errors are available in `phone.wireless_recovery` at `/api/status`.
 
 ---
 

@@ -2124,6 +2124,7 @@ _phone_state = {
     "last_error": None,
     "model": None,
     "transport": None,
+    "wireless_recovery": {"state": "idle", "error": None},
 }
 _phone_transport_serial = None
 _phone_identity_cache = {}
@@ -2164,6 +2165,7 @@ def load_phone_config():
         "mode": "auto",
         "prefer_wireless": True,
         "usb_fallback": True,
+        "auto_restore_wireless_debugging": True,
         "preferred_hardware_serial": "",
         "preferred_model": "",
         "legacy_endpoints": [],
@@ -2180,6 +2182,7 @@ def load_phone_config():
         config["mode"] = "auto"
     config["prefer_wireless"] = bool(config.get("prefer_wireless", True))
     config["usb_fallback"] = bool(config.get("usb_fallback", True))
+    config["auto_restore_wireless_debugging"] = config.get("auto_restore_wireless_debugging") is True
     for key in ("preferred_hardware_serial", "preferred_model"):
         value = config.get(key, "")
         config[key] = value.strip() if isinstance(value, str) else ""
@@ -2375,15 +2378,64 @@ def _remember_wireless_endpoint(endpoint):
         pass
 
 
-def connect_configured_wireless(config, connected_serials=()):
+def restore_wireless_debugging(config, devices):
+    """Recover modern wireless ADB through one authorized target's USB transport."""
+    def status(state, error=None):
+        set_phone(wireless_recovery={"state": state, "error": error})
+
+    if (config["mode"] == "usb" or not config.get("auto_restore_wireless_debugging", True)
+            or (config["mode"] == "auto" and not config["prefer_wireless"])):
+        status("disabled")
+        return
+    wireless = [d for d in devices if d["connection"] == "wireless" and d["state"] == "device"]
+    if wireless and select_phone_device(wireless, config)[0]:
+        status("connected")
+        return
+
+    usb = [d for d in devices if d["connection"] == "usb" and d["state"] == "device"]
+    if config["preferred_hardware_serial"]:
+        usb = [d for d in usb if d["serial"] == config["preferred_hardware_serial"]]
+    elif config["preferred_model"]:
+        wanted = _normalize_model(config["preferred_model"])
+        usb = [d for d in usb if _normalize_model(d["model"]) == wanted]
+    if len(usb) != 1:
+        status("usb_required" if not usb else "ambiguous_phone",
+               "Connect the selected phone by USB, or enable wireless debugging on the phone."
+               if not usb else "Select one target phone before restoring wireless debugging.")
+        return
+
+    serial = usb[0]["serial"]
+    try:
+        sdk = device_adb(serial, "shell", "getprop", "ro.build.version.sdk", timeout=4)
+        if sdk.returncode != 0 or not sdk.stdout.strip().isdigit():
+            raise RuntimeError("Could not read the phone's Android version.")
+        if int(sdk.stdout.strip()) < 30:
+            status("manual_setup_required", "Android 10 or earlier requires wireless_setup.bat.")
+            return
+        wifi = device_adb(serial, "shell", "ip", "-4", "addr", "show", "wlan0", timeout=4)
+        if wifi.returncode != 0 or not re.search(r"\binet\s+[0-9.]+/", wifi.stdout):
+            status("waiting_wifi", "Connect the phone to the same Wi-Fi network as the PC.")
+            return
+        enabled = device_adb(serial, "shell", "settings", "get", "global", "adb_wifi_enabled", timeout=4)
+        if enabled.returncode != 0 or enabled.stdout.strip() not in ("0", "1"):
+            raise RuntimeError("Could not read the phone's wireless debugging setting.")
+        if enabled.stdout.strip() == "0":
+            changed = device_adb(serial, "shell", "settings", "put", "global", "adb_wifi_enabled", "1", timeout=4)
+            verified = device_adb(serial, "shell", "settings", "get", "global", "adb_wifi_enabled", timeout=4)
+            if changed.returncode != 0 or verified.returncode != 0 or verified.stdout.strip() != "1":
+                raise RuntimeError("Wireless debugging could not be enabled; check the phone for a permission prompt.")
+            log(f"Wireless debugging restored through USB for {serial}; waiting for wireless discovery")
+        status("waiting_connection")
+    except Exception as e:
+        status("failed", str(e))
+
+
+def connect_configured_wireless(config, connected_serials=(), devices=()):
+    restore_wireless_debugging(config, devices)
     if config["mode"] == "usb":
         return
     connected = set(connected_serials)
     endpoints = []
-    last_endpoint = _last_wireless_endpoint()
-    if last_endpoint:
-        endpoints.append(last_endpoint)
-    endpoints.extend(config["legacy_endpoints"])
     try:
         result = adb("mdns", "services", timeout=5)
         if result.returncode == 0:
@@ -2394,11 +2446,21 @@ def connect_configured_wireless(config, connected_serials=()):
     except Exception:
         pass
 
+    # Fresh discovery must take precedence over an obsolete saved IP/port.
+    last_endpoint = _last_wireless_endpoint()
+    if last_endpoint:
+        endpoints.append(last_endpoint)
+    endpoints.extend(config["legacy_endpoints"])
+
     for endpoint in dict.fromkeys(endpoints):
         if endpoint in connected:
             continue
         try:
-            adb("connect", endpoint, timeout=6)
+            result = adb("connect", endpoint, timeout=6)
+            message = (result.stderr or result.stdout).strip()
+            if "authenticat" in message.lower() or "pairing" in message.lower():
+                set_phone(wireless_recovery={"state": "pairing_required",
+                          "error": "Wireless pairing is required; run wireless_setup.bat with the phone connected by USB."})
         except Exception:
             pass
 
@@ -2418,6 +2480,8 @@ def _activate_phone_transport(device):
             model=device.get("model") or None,
             transport=device["connection"],
         )
+        if device["connection"] == "wireless":
+            _phone_state["wireless_recovery"] = {"state": "connected", "error": None}
     if device["connection"] == "wireless":
         _remember_wireless_endpoint(device["serial"])
 
@@ -2480,7 +2544,8 @@ def resolve_phone_device(connect_wireless=False):
     config = load_phone_config()
     devices, error = list_adb_devices()
     if connect_wireless:
-        connect_configured_wireless(config, (item["serial"] for item in devices))
+        connect_configured_wireless(config, (item["serial"] for item in devices if item["state"] == "device"),
+                                    devices=devices)
         devices, error = list_adb_devices()
     target, select_error = select_phone_device(devices, config)
     return target, select_error or error
@@ -2645,7 +2710,8 @@ def phone_watcher():
             config = load_phone_config()
             devices, adb_error = list_adb_devices()
             if now >= next_discovery:
-                connect_configured_wireless(config, (item["serial"] for item in devices))
+                connect_configured_wireless(config, (item["serial"] for item in devices if item["state"] == "device"),
+                                            devices=devices)
                 devices, adb_error = list_adb_devices()
                 next_discovery = now + discovery_backoff
 
