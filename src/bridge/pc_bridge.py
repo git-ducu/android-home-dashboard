@@ -2544,6 +2544,26 @@ def dashboard_is_foreground(serial):
         return False
 
 
+def wait_for_phone_browser(serial, package, timeout=5, pwa=False):
+    """A successful launch command can still redirect a WebAPK to Play Store."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            window = device_adb(serial, "shell", "dumpsys", "window", timeout=6)
+            focused = next((line for line in window.stdout.splitlines() if "mCurrentFocus=" in line), "")
+            webapp_activity = re.search(
+                r"\.webapps\.(?:WebappActivity|WebApkActivity|SameTaskWebApkActivity)\d*(?:[\s}])", focused
+            )
+            if (window.returncode == 0 and f" {package}/" in focused
+                    and (not pwa or webapp_activity)):
+                return True
+        except Exception:
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.25)
+
+
 def open_phone_ui(serial):
     global _phone_pwa_package
     if is_session_locked():
@@ -2564,8 +2584,9 @@ def open_phone_ui(serial):
             pass
         device_adb_ok(serial, "shell", "settings", "put", "global", "policy_control", f"immersive.full={pwa}")
         r = device_adb(serial, "shell", "monkey", "-p", pwa, "-c", "android.intent.category.LAUNCHER", "1", timeout=10)
-        if r.returncode == 0:
+        if r.returncode == 0 and wait_for_phone_browser(serial, "com.android.chrome", pwa=True):
             return "Dashboard PWA"
+        log(f"PWA {pwa} did not open a PWA window; trying the dashboard URL directly")
     device_adb_ok(serial, "shell", "settings", "put", "global", "policy_control", "immersive.full=com.android.chrome")
     url = "http://127.0.0.1:8765"
     browser = None
@@ -2574,20 +2595,32 @@ def open_phone_ui(serial):
             return "Chrome current"
         r = device_adb(serial, "shell", "am", "start", "-W", "--activity-clear-top", "--activity-single-top",
                        "-a", "android.intent.action.VIEW", "-d", url, "com.android.chrome", timeout=10)
-        if r.returncode == 0:
+        if r.returncode == 0 and wait_for_phone_browser(serial, "com.android.chrome"):
             browser = "Chrome"
     if browser is None and package_exists(serial, "com.sec.android.app.sbrowser"):
         r = device_adb(serial, "shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", url,
                        "com.sec.android.app.sbrowser", timeout=10)
-        if r.returncode == 0:
+        if r.returncode == 0 and wait_for_phone_browser(serial, "com.sec.android.app.sbrowser"):
             browser = "Samsung Internet"
     if browser is None:
-        r = device_adb(serial, "shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", url,
-                       timeout=10)
-        if r.returncode == 0:
-            browser = "Default browser"
+        # Resolve a general browser instead of letting the dashboard URL select
+        # the same broken WebAPK again through Android's verified app links.
+        resolved = device_adb(serial, "shell", "cmd", "package", "resolve-activity", "--brief",
+                              "-a", "android.intent.action.VIEW", "-c", "android.intent.category.BROWSABLE",
+                              "-d", "https://example.invalid", timeout=6)
+        component = resolved.stdout.strip().splitlines()[-1] if resolved.stdout.strip() else ""
+        package = component.split("/", 1)[0]
+        if (resolved.returncode == 0 and "/" in component
+                and re.fullmatch(r"[A-Za-z0-9._]+", package)
+                and not package.startswith("org.chromium.webapk.")
+                and package not in ("android", "com.android.vending", "com.android.chrome",
+                                    "com.sec.android.app.sbrowser")):
+            r = device_adb(serial, "shell", "am", "start", "-W", "-a", "android.intent.action.VIEW",
+                           "-d", url, package, timeout=10)
+            if r.returncode == 0 and wait_for_phone_browser(serial, package):
+                browser = "Default browser"
     if browser is None:
-        raise RuntimeError("browser launch failed")
+        raise RuntimeError("dashboard browser did not reach the foreground; check the phone screen")
     return browser
 
 
